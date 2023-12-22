@@ -62,6 +62,11 @@ class Play
       Play.new(play.first)
   end
 
+  def find_by_playwright(name)
+    
+  end
+end
+
   class Playwright
 
     def self.all
@@ -80,7 +85,7 @@ class Play
         name = ?
 
       SQL
-        return nil unless playwrights.lenght > 0
+        return nil unless playwrights.length > 0
         Playwright.new(playwrights.first)
     end
 
@@ -100,5 +105,34 @@ class Play
       SQL
       self.id = PlayDBConnection.instance.last_insert_row_id
     end
+
+    def update
+      raise "#{self} not in a database" unless self.id
+      PlayDBConnection.instance.execute(<<-SQL, self.name, self.birth_year, self.id)
+      UPDATE 
+        playwrights
+      SET 
+        name = ?
+        birth_year = ?
+      WHERE 
+        id = ?
+      SQL
+    end
+
+    def get_plays
+      db = PlayDBConnection.instance.execute(<<-SQL, self.name )
+      SELECT 
+        *
+      FROM
+        plays
+      OUTER JOIN 
+        playwrights
+      ON
+        plays.playwrights_id = playwrights.id
+      WHERE 
+        name = ?
+      SQL
+      return nil unless db.length > 0
+      Plays.new(db.first)
+    end
   end
-end
