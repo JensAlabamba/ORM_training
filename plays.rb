@@ -49,7 +49,7 @@ class Play
     SQL
   end
 
-  def find_by_title(title)
+  def self.find_by_title(title)
     play = PlayDBConnection.instance.execute(<<-SQL, title )
       SELECT
         *
@@ -62,19 +62,31 @@ class Play
       Play.new(play.first)
   end
 
-  def find_by_playwright(name)
-    
+  def self.find_by_playwright(name)
+    play = PlayDBConnection.instance.execute(<<-SQL, name)
+      SELECT 
+        *
+      FROM 
+        plays
+      JOIN 
+        playwrights
+      ON 
+        playwrights.id = plays.playwright_id
+      WHERE
+        playwrights.name = ?
+    SQL
+    Play.new(play.first)
   end
 end
 
   class Playwright
-
+    attr_accessor :id, :name, :birth_year
     def self.all
       data = PlayDBConnection.instance.execute("SELECT * FROM playwrights")
       data.map { |datum| Playwright.new(datum) }
     end
 
-    def find_by_name(name)
+    def self.find_by_name(name)
       playwrights = PlayDBConnection.instance.execute(<<-SQL, name)
 
         SELECT
@@ -89,7 +101,7 @@ end
         Playwright.new(playwrights.first)
     end
 
-    def new(options)
+    def initialize(options)
       @id = options['id']
       @name = options['name']
       @birth_year = options['birth_year']
@@ -99,7 +111,7 @@ end
       raise "#{self} already in a database" if self.id
       PlayDBConnection.instance.execute(<<-SQL, self.name, self.birth_year)
       INSERT INTO 
-        name, birth_year
+        playwrights(name, birth_year)
       VALUES
         (?, ?)
       SQL
@@ -112,7 +124,7 @@ end
       UPDATE 
         playwrights
       SET 
-        name = ?
+        name = ?,
         birth_year = ?
       WHERE 
         id = ?
@@ -125,14 +137,14 @@ end
         *
       FROM
         plays
-      OUTER JOIN 
+      JOIN 
         playwrights
       ON
-        plays.playwrights_id = playwrights.id
+        plays.playwright_id = playwrights.id
       WHERE 
         name = ?
       SQL
       return nil unless db.length > 0
-      Plays.new(db.first)
+      Play.new(db.first)
     end
   end
